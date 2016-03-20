@@ -80,20 +80,22 @@ BasicGame.Game.prototype = {
 };
 
 Cell = function(state, x, y, letter, parent) {
+    this.state = state;
     this.parent = parent || {};
     this.x = (x || 0);
     this.y = (y || 0);
-    this.width = state.cellWidth || 70;
-    this.height = state.cellHeight || 70;
-    this.graphics = state.add.graphics((this.x + (this.parent.x || 0)) * this.width, (this.y + (this.parent.y || 0)) * this.height);
+    this.width = this.state.cellWidth || 70;
+    this.height = this.state.cellHeight || 70;
+    this.graphics = this.state.add.graphics((this.x + (this.parent.x || 0)) * this.width, (this.y + (this.parent.y || 0)) * this.height);
     this.graphics.lineStyle(5, 0xF5DEB5, 1);
     this.graphics.beginFill(0xC7D0CC, 1);
     this.graphics.drawRoundedRect(0, 0, this.width, this.height, 8);
     //this.graphics.drawCircle(x + width / 2, y + height / 2, 70);
-    this.text = state.add.text((this.x  + (this.parent.x || 0)) * this.width + this.width / 2, (this.y + (this.parent.y || 0)) * this.height + this.height / 2, letter || "", { fill: '#505050', font: "30px Arial", align: "center"});
-    this.text.anchor.setTo(0.5, 0.5);
-
     this.letter = letter || "";
+    this.text = this.state.add.text((this.x  + (this.parent.x || 0)) * this.width + this.width / 2, (this.y + (this.parent.y || 0)) * this.height + this.height / 2, this.letter, { fill: '#505050', font: "30px Arial", align: "center"});
+    this.text.anchor.setTo(0.5, 0.5);
+    this.tween = null;
+
 
 };
 
@@ -110,9 +112,25 @@ Cell.prototype = {
         this.graphics.position.setTo((this.x + (this.parent.x || 0)) * this.width, (this.y + (this.parent.y || 0)) * this.height);
         this.text.position.setTo((this.x + (this.parent.x || 0)) * this.width + this.width / 2, (this.y + (this.parent.y || 0)) * this.height + this.height / 2);
     },
+    focus: function() {
+        this.text.fill = '#00ff00';
+    },
     destroy : function() {
+        if (this.tween) {
+            this.tween.destroy(true);
+        }
         this.graphics.destroy(true);
         this.text.destroy(true);
+    },
+    hide: function() {
+        if (!this.tween) {
+            this.tween = this.state.add.tween(this.text).to({height: 0}, 1000, Phaser.Easing.Bounce.Out, true).onComplete.add(function () {
+                console.log(this);
+                this.tween = null;
+                this.destroy();
+            }, this);
+            this.state.add.tween(this.graphics).to({height: 0}, 1000, Phaser.Easing.Bounce.Out, true);
+        }
     }
 };
 
@@ -374,22 +392,28 @@ Field.prototype = {
                     str += this.cells[i][j].letter;
                 }
             }
-            result = result.concat(dict.findIn(str));
-            str = "";
+            result[j] = dict.findIn(str, false);
 
-            for (var i = this.width - 1; i >= 0; --i) {
-                if (this.cells[i][j] != null && this.cells[i][j].active) {
-                    continue;
-                }
-                if (this.cells[i][j] == null) {
-                    str += " ";
-                }
-                else {
-                    str += this.cells[i][j].letter;
+            for(var l = 0; l < result[j].length; ++l) {
+                console.log(result[j][l]);
+                for(var s = 0; s < result[j][l].length; ++s) {
+
+                    this.cells[s + result[j][l].first][j].hide();
+                    this.cells[s + result[j][l].first][j] = null;
                 }
             }
-            result = result.concat(dict.findIn(str));
-            console.log(result);
+            str = str.split('').reverse().join('');
+
+            result[j] = dict.findIn(str, true);
+            for(var l = 0; l < result[j].length; ++l) {
+                console.log(result[j][l]);
+                for(var s = 0; s < result[j][l].length; ++s) {
+                    if (this.cells[this.width - result[j][l].first - s - 1][j] != null) {
+                        this.cells[this.width - result[j][l].first - s - 1][j].hide();
+                        this.cells[this.width - result[j][l].first - s - 1][j] = null;
+                    }
+                }
+            }
             str = "";
         }
 

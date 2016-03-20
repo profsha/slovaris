@@ -26,21 +26,23 @@ var dict = {
             }
         }
     },
-    findIn : function(str) {
-        var s = str;
-        var result = [];
-        var first = s.length;
+    findIn : function(str, reverse) {
+        var s = str; //строка поиска
+        var result = []; //массив найденых слов
+        var count = 0;//счетчик начала слова
         while (s.length >= this.min) {
             var word = this.findWord(s);
             if (word ) {
                 var obj = {
                     word: word,
-                    first: first - s.length,
-                    length: word.length
+                    first: count,
+                    length: word.length,
+                    reverse: reverse
                 };
                 result.push(obj);
             }
             s = s.substring(1);
+            ++count;
         }
 
         return result;
